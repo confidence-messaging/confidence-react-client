@@ -1,17 +1,22 @@
 import React from "react";
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter } from "reactstrap";
+import ethWallet from "ethereumjs-wallet";
 import ChatList from "./components/ChatList";
 import "./chat.css";
+import nodes from "./defaultNodes.json";
+import axios from "axios";
 
 export default class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      node: "https://confidence.obex.pw/",
+      node: "",
       active: "asd",
       configOpen: true,
       publicKeys: ["asd"],
-      messages: []
+      messages: [],
+      privateKey: null,
+      publicKey: null
     };
   }
 
@@ -23,6 +28,20 @@ export default class App extends React.Component {
     this.setState(prevstate => ({
       configOpen: !prevstate.configOpen
     }));
+  }
+
+  generateKeyPair() {
+    const wallet = ethWallet.generate();
+    this.setState({
+      privateKey: wallet.getPrivateKeyString(),
+      publicKey: wallet.getAddressString()
+    });
+  }
+
+  async sync(){
+    const { node, publicKey } = this.state;
+    const { data } = await axios.get(`${node}/messages/${publicKey}`);
+    console.log(data);
   }
 
   render() {
@@ -44,24 +63,34 @@ export default class App extends React.Component {
               <div className="col">
                 <label htmlFor="cars">Connected node</label>{" "}
                 <select id="node" onChange={e => console.log(e.target.value)}>
-                  <option value="obex">confidence.obex.pw</option>
+                  {nodes.map(node => {
+                    return <option value="node">{node}</option>;
+                  })}
                 </select>
               </div>
             </div>
             <div className="row">
               <div className="col">
-                <input type="text" name="publicKey" /> <small>Public key</small>
+                <input type="text" name="publicKey" defaultValue={publicKey} />{" "}
+                <small>Public key</small>
                 <hr />
-                <input type="text" name="privateKey" />{" "}
+                <input
+                  type="text"
+                  name="privateKey"
+                  defaultValue={privateKey}
+                />{" "}
                 <small>Private key</small>
               </div>
             </div>
           </ModalBody>
           <ModalFooter>
-          <Button color="secondary" onClick={() => this.generateKeyPair()}>
+            <Button color="success" onClick={() => this.generateKeyPair()}>
               New Keypair
             </Button>
-            <Button color="secondary" onClick={() => this.toggleConfig()}>
+            <Button color="primary" onClick={() => this.sync()}>
+              Sync
+            </Button>
+            <Button color="danger" onClick={() => this.toggleConfig()}>
               Close
             </Button>
           </ModalFooter>
@@ -78,7 +107,9 @@ export default class App extends React.Component {
                 <div className="srch_bar">
                   <div className="stylish-input-group">
                     <span className="input-group-addon">
-                      <button type="button" onClick={() => this.toggleConfig()}>config</button>
+                      <button type="button" onClick={() => this.toggleConfig()}>
+                        config
+                      </button>
                     </span>{" "}
                   </div>
                 </div>
